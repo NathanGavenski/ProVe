@@ -23,9 +23,9 @@ class StatsDBHandler(MongoDBHandler):
         super().__init__(connection_string, max_retries)
 
     def connect(self, max_retries: int, connection_string: str):
-        for attempt in range(self.max_retries):
+        for attempt in range(max_retries):
             try:
-                self.client = MongoClient(self.connection_string)
+                self.client = MongoClient(connection_string)
                 self.client.server_info()
                 self.db = self.client['service_usage']
                 self.usage_collection = self.db['usage']
@@ -33,7 +33,7 @@ class StatsDBHandler(MongoDBHandler):
                 return True
             except Exception as e:
                 print(f"StatsDB connection attempt {attempt + 1} failed: {e}")
-                if attempt == self.max_retries - 1:
+                if attempt == max_retries - 1:
                     raise ConnectionError("Failed to connect to StatsDB") from e
                 time.sleep(5)  # Wait before retry
 
@@ -45,7 +45,7 @@ class StatsDBHandler(MongoDBHandler):
 
     def __enter__(self):
         """Enables use with 'with' statement."""
-        self.connect()
+        self.connect(self.max_retries, self.connection_string)
         return self  # Allows access to the instance in 'with' block
 
     def __exit__(self, exc_type, exc_value, traceback):
